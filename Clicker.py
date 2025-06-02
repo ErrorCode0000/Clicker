@@ -9,7 +9,6 @@ def clicker():
     while True:
         if clicking:
             mouse.Controller().click(mouse.Button.left, 1)
-        time.sleep(0.005)
 
 def on_press(key):
     global clicking
