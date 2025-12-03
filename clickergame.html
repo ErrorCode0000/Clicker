@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Cookie Forge</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #444 0, #111 55%);
+      color: #f0f0f0;
+      display: flex;
+      min-height: 100vh;
+    }
+    .app {
+      display: flex;
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      gap: 16px;
+    }
+    .left, .right {
+      background: rgba(0,0,0,0.35);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(6px);
+    }
+    .left { flex: 1.4; display: flex; flex-direction: column; align-items: center; }
+    .right { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .stat-label { opacity: 0.75; }
+
+    .big-cookie-wrapper {
+      position: relative;
+      margin: 16px 0;
+    }
+    .big-cookie {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      border: 6px solid rgba(0,0,0,0.5);
+      background:
+        radial-gradient(circle at 30% 30%, #f9e0b3 0, #c48c47 70%) padding-box,
+        radial-gradient(circle at 25% 35%, #5c3a1a 0, transparent 55%),
+        radial-gradient(circle at 65% 40%, #5c3a1a 0, transparent 60%),
+        radial-gradient(circle at 45% 70%, #5c3a1a 0, transparent 55%);
+      box-shadow:
+        0 0 30px rgba(0,0,0,0.5),
+        0 0 0 4px rgba(255,255,255,0.07) inset;
+      cursor: pointer;
+      transition: transform 0.07s ease, box-shadow 0.07s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .big-cookie:active {
+      transform: scale(0.96);
+      box-shadow:
+        0 0 15px rgba(0,0,0,0.7),
+        0 0 0 6px rgba(255,255,255,0.04) inset;
+    }
+
+    .floating-text {
+      position: absolute;
+      color: #ffeb8a;
+      font-weight: bold;
+      text-shadow: 0 0 6px rgba(0,0,0,0.7);
+      pointer-events: none;
+      animation: floatUp 700ms ease-out forwards;
+      font-size: 16px;
+    }
+    .floating-text.crit {
+      color: #ff6bd5;
+      font-size: 18px;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-40px); }
+    }
+
+    .cps-display {
+      font-size: 15px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.04);
+      color: inherit;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #ffb347, #ffcc33);
+      color: #111;
+      font-weight: 600;
+      border-color: transparent;
+    }
+
+    .panel {
+      flex: 1;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 8px;
+      overflow-y: auto;
+      max-height: calc(100vh - 160px);
+      font-size: 14px;
+    }
+
+    .upgrade-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .upgrade-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .upgrade-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .upgrade-name { font-weight: 600; }
+    .upgrade-desc { opacity: 0.8; font-size: 13px; }
+    .upgrade-meta { opacity: 0.75; font-size: 12px; }
+
+    .btn-buy {
+      padding: 6px 10px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: linear-gradient(135deg, #4caf50, #8bc34a);
+      color: #111;
+      cursor: pointer;
+      font-size: 13px;
+      min-width: 82px;
+    }
+    .btn-buy:disabled {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4);
+      border-color: rgba(255,255,255,0.08);
+      cursor: not-allowed;
+    }
+
+    .section-title {
+      font-weight: 600;
+      margin: 4px 0 8px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .prestige-box {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px dashed rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.03);
+      font-size: 13px;
+    }
+    .btn-prestige {
+      margin-top: 6px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-prestige:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      margin-top: 8px;
+      font-size: 11px;
+      opacity: 0.7;
+      text-align: center;
+    }
+    a, a:visited { color: #ffb347; text-decoration: none; }
+
+    @media (max-width: 900px) {
+      body { display: block; }
+      .app { flex-direction: column; height: auto; }
+      .panel { max-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="left">
+    <h1>Cookie Forge</h1>
+    <div class="stats">
+      <div><span class="stat-label">Toplam Cookie:</span> <span id="stat-total">0</span></div>
+      <div><span class="stat-label">Elde:</span> <span id="stat-current">0</span></div>
+      <div><span class="stat-label">Tıklama Gücü:</span> <span id="stat-clickPower">1</span></div>
+      <div><span class="stat-label">CPS:</span> <span id="stat-cps">0</span></div>
+      <div><span class="stat-label">Prestige:</span> <span id="stat-prestige">0</span></div>
+      <div><span class="stat-label">Prestige Çarpanı:</span> <span id="stat-prestigeMult">1.00x</span></div>
+    </div>
+
+    <div class="big-cookie-wrapper">
+      <div id="bigCookie" class="big-cookie" title="Tıkla!"></div>
+    </div>
+    <div class="cps-display" id="cpsDisplay">Saniyede 0 cookie</div>
+
+    <div class="footer">
+      Oyun otomatik kaydedilir. Veriler tarayıcıda saklanır.
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="upgrades">Yükseltmeler</button>
+      <button class="tab-btn" data-tab="stats">İstatistikler</button>
+      <button class="tab-btn" data-tab="settings">Ayarlar</button>
+    </div>
+    <div class="panel" id="panel-upgrades">
+      <div class="section-title">Tıklama Yükseltmeleri</div>
+      <div id="clickUpgrades" class="upgrade-list"></div>
+
+      <div class="section-title">Otomatik Üretim</div>
+      <div id="autoUpgrades" class="upgrade-list"></div>
+
+      <div class="section-title">Kritik Vuruş</div>
+      <div id="critUpgrades" class="upgrade-list"></div>
+
+      <div class="section-title">Prestige</div>
+      <div class="prestige-box">
+        Prestige, oyunu sıfırlar ama kalıcı global üretim bonusu verir.
+        <br/>
+        Her 1M toplam cookie için 1 prestige puanı kazanırsın.
+        <br/>
+        Şu an kazanabileceğin toplam prestige puanı:
+        <b id="prestigePotential">0</b>
+        <br/>
+        Kazanılabilir ek prestige puanı:
+        <b id="prestigeGain">0</b>
+        <br/>
+        <button id="btnPrestige" class="btn-prestige" disabled>Prestige Yap</button>
+        <div style="opacity:0.8; margin-top:4px;">
+          Her prestige puanı: +%2 global cookie üretim çarpanı.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-stats" style="display:none;">
+      <div class="section-title">Genel</div>
+      <ul id="statsList">
+        <li>Toplam tıklama: <span id="s-totalClicks">0</span></li>
+        <li>En yüksek CPS: <span id="s-maxCps">0</span></li>
+        <li>Oyun süresi: <span id="s-timePlayed">0</span> sn</li>
+      </ul>
+    </div>
+
+    <div class="panel" id="panel-settings" style="display:none;">
+      <div class="section-title">Ayarlar</div>
+      <button id="btnHardReset" class="btn-prestige" style="background:linear-gradient(135deg,#555,#333);">
+        Tüm Kaydı Sil (Hard Reset)
+      </button>
+      <p style="margin-top:8px; font-size:13px; opacity:0.85;">
+        Bu düğme tüm ilerlemeni sıfırlar. Geri dönüşü yok.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const defaultState = {
+  cookies: 0,
+  totalCookies: 0,
+  clickPower: 1,
+  baseClickPower: 1,
+  cps: 0,
+  autoPerSecond: 0,
+  critChance: 0.05,
+  critMultiplier: 3,
+  prestigePoints: 0,
+  stats: {
+    totalClicks: 0,
+    maxCps: 0,
+    timePlayed: 0
+  },
+  upgrades: {
+    click: {},
+    auto: {},
+    crit: {}
+  }
+};
+
+let state = loadState();
+
+const PRESTIGE_COOKIES_PER_POINT = 1_000_000;
+const PRESTIGE_BONUS_PER_POINT = 0.02; // %2
+
+function getPrestigeMultiplier() {
+  return 1 + state.prestigePoints * PRESTIGE_BONUS_PER_POINT;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem("cookieForgeSave");
+    if (!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    return {
+      ...structuredClone(defaultState),
+      ...parsed,
+      stats: { ...defaultState.stats, ...(parsed.stats || {})},
+      upgrades: {
+        click: parsed.upgrades?.click || {},
+        auto: parsed.upgrades?.auto || {},
+        crit: parsed.upgrades?.crit || {}
+      }
+    };
+  } catch(e) {
+    console.warn("Kayıt yüklenemedi:", e);
+    return structuredClone(defaultState);
+  }
+}
+function saveState() {
+  try {
+    localStorage.setItem("cookieForgeSave", JSON.stringify(state));
+  } catch(e) {
+    console.warn("Kayıt yapılamadı:", e);
+  }
+}
+
+const clickUpgradesDef = [
+  {
+    id: "click1",
+    name: "Daha Güçlü Tık",
+    desc: "+1 cookie / tık",
+    baseCost: 15,
+    powerIncrease: 1,
+    costMult: 1.25
+  },
+  {
+    id: "click2",
+    name: "Çelik Parmak",
+    desc: "+5 cookie / tık",
+    baseCost: 150,
+    powerIncrease: 5,
+    costMult: 1.35
+  },
+  {
+    id: "click3",
+    name: "Cookie Canavarı",
+    desc: "+25 cookie / tık",
+    baseCost: 1500,
+    powerIncrease: 25,
+    costMult: 1.45
+  }
+];
+
+const autoUpgradesDef = [
+  {
+    id: "auto1",
+    name: "Mini Fırın",
+    desc: "+1 temel CPS",
+    baseCost: 50,
+    cpsIncrease: 1,
+    costMult: 1.25
+  },
+  {
+    id: "auto2",
+    name: "Endüstriyel Fırın",
+    desc: "+10 temel CPS",
+    baseCost: 500,
+    cpsIncrease: 10,
+    costMult: 1.35
+  },
+  {
+    id: "auto3",
+    name: "Cookie Fabrikası",
+    desc: "+100 temel CPS",
+    baseCost: 5000,
+    cpsIncrease: 100,
+    costMult: 1.4
+  }
+];
+
+const critUpgradesDef = [
+  {
+    id: "crit1",
+    name: "Şanslı Dokunuş",
+    desc: "+%2 kritik şans",
+    baseCost: 200,
+    critChanceInc: 0.02,
+    costMult: 1.35
+  },
+  {
+    id: "crit2",
+    name: "Altın Parmağı",
+    desc: "Kritik çarpanı x4",
+    baseCost: 2000,
+    critMultiplierSet: 4,
+    costMult: 1.8
+  }
+];
+
+function fmt(num) {
+  if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+  if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+  if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
+  return Math.floor(num).toString();
+}
+function getUpgradeLevel(cat, id) {
+  return state.upgrades[cat][id]?.level || 0;
+}
+function getUpgradeCost(def, level) {
+  return Math.floor(def.baseCost * Math.pow(def.costMult, level));
+}
+
+const bigCookie = document.getElementById("bigCookie");
+const statTotal = document.getElementById("stat-total");
+const statCurrent = document.getElementById("stat-current");
+const statClickPower = document.getElementById("stat-clickPower");
+const statCps = document.getElementById("stat-cps");
+const statPrestige = document.getElementById("stat-prestige");
+const statPrestigeMult = document.getElementById("stat-prestigeMult");
+const cpsDisplay = document.getElementById("cpsDisplay");
+
+const sTotalClicks = document.getElementById("s-totalClicks");
+const sMaxCps = document.getElementById("s-maxCps");
+const sTimePlayed = document.getElementById("s-timePlayed");
+const prestigePotential = document.getElementById("prestigePotential");
+const prestigeGain = document.getElementById("prestigeGain");
+const btnPrestige = document.getElementById("btnPrestige");
+
+const clickUpgradesContainer = document.getElementById("clickUpgrades");
+const autoUpgradesContainer = document.getElementById("autoUpgrades");
+const critUpgradesContainer = document.getElementById("critUpgrades");
+
+const btnHardReset = document.getElementById("btnHardReset");
+
+function updateStatsUI() {
+  const mult = getPrestigeMultiplier();
+
+  statTotal.textContent = fmt(state.totalCookies);
+  statCurrent.textContent = fmt(state.cookies);
+  statClickPower.textContent = fmt(state.clickPower);
+  statCps.textContent = fmt(state.cps);
+  statPrestige.textContent = state.prestigePoints;
+  statPrestigeMult.textContent = mult.toFixed(2) + "x";
+  cpsDisplay.textContent = `Saniyede ${fmt(state.cps)} cookie`;
+
+  sTotalClicks.textContent = state.stats.totalClicks;
+  sMaxCps.textContent = fmt(state.stats.maxCps);
+  sTimePlayed.textContent = state.stats.timePlayed;
+
+  const potentialTotal = Math.floor(state.totalCookies / PRESTIGE_COOKIES_PER_POINT);
+  const gain = Math.max(0, potentialTotal - state.prestigePoints);
+  prestigePotential.textContent = potentialTotal;
+  prestigeGain.textContent = gain;
+  btnPrestige.disabled = gain <= 0;
+}
+
+function createUpgradeCard(def, cat) {
+  const card = document.createElement("div");
+  card.className = "upgrade-card";
+
+  const info = document.createElement("div");
+  info.className = "upgrade-info";
+
+  const name = document.createElement("div");
+  name.className = "upgrade-name";
+  name.textContent = def.name;
+
+  const desc = document.createElement("div");
+  desc.className = "upgrade-desc";
+  desc.textContent = def.desc;
+
+  const meta = document.createElement("div");
+  meta.className = "upgrade-meta";
+
+  const btn = document.createElement("button");
+  btn.className = "btn-buy";
+
+  function refresh() {
+    const lvl = getUpgradeLevel(cat, def.id);
+    const cost = getUpgradeCost(def, lvl);
+    meta.textContent = `Seviye: ${lvl} | Maliyet: ${fmt(cost)} cookie`;
+    btn.textContent = `Satın Al`;
+    btn.disabled = state.cookies < cost;
+  }
+
+  btn.addEventListener("click", () => {
+    const lvl = getUpgradeLevel(cat, def.id);
+    const cost = getUpgradeCost(def, lvl);
+    if (state.cookies < cost) return;
+
+    state.cookies -= cost;
+    const udata = state.upgrades[cat][def.id] || { level: 0 };
+    udata.level++;
+    state.upgrades[cat][def.id] = udata;
+
+    if (cat === "click") {
+      state.clickPower += def.powerIncrease;
+    } else if (cat === "auto") {
+      state.autoPerSecond += def.cpsIncrease;
+      recalcCps();
+    } else if (cat === "crit") {
+      if (def.critChanceInc) state.critChance += def.critChanceInc;
+      if (def.critMultiplierSet) state.critMultiplier = def.critMultiplierSet;
+    }
+
+    refresh();
+    updateStatsUI();
+    saveState();
+  });
+
+  info.appendChild(name);
+  info.appendChild(desc);
+  info.appendChild(meta);
+  card.appendChild(info);
+  card.appendChild(btn);
+
+  setInterval(refresh, 300);
+
+  return card;
+}
+
+function initUpgradesUI() {
+  clickUpgradesDef.forEach(def => {
+    clickUpgradesContainer.appendChild(createUpgradeCard(def, "click"));
+  });
+  autoUpgradesDef.forEach(def => {
+    autoUpgradesContainer.appendChild(createUpgradeCard(def, "auto"));
+  });
+  critUpgradesDef.forEach(def => {
+    critUpgradesContainer.appendChild(createUpgradeCard(def, "crit"));
+  });
+}
+
+function recalcCps() {
+  const mult = getPrestigeMultiplier();
+  state.cps = state.autoPerSecond * mult;
+  if (state.cps > state.stats.maxCps) {
+    state.stats.maxCps = state.cps;
+  }
+}
+
+bigCookie.addEventListener("click", (ev) => {
+  const rect = bigCookie.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+
+  const mult = getPrestigeMultiplier();
+  const isCrit = Math.random() < state.critChance;
+  const baseGain = state.clickPower * mult;
+  const gain = isCrit ? baseGain * state.critMultiplier : baseGain;
+
+  state.cookies += gain;
+  state.totalCookies += gain;
+  state.stats.totalClicks++;
+
+  showFloatingText("+" + fmt(gain), x, y, isCrit);
+
+  updateStatsUI();
+  saveState();
+});
+
+function showFloatingText(text, x, y, crit = false) {
+  const span = document.createElement("span");
+  span.className = "floating-text" + (crit ? " crit" : "");
+  span.textContent = text;
+  span.style.left = x + "px";
+  span.style.top = y + "px";
+  bigCookie.appendChild(span);
+
+  setTimeout(() => span.remove(), 700);
+}
+
+setInterval(() => {
+  if (state.autoPerSecond > 0) {
+    const mult = getPrestigeMultiplier();
+    const gain = (state.autoPerSecond * mult) / 10;
+    state.cookies += gain;
+    state.totalCookies += gain;
+    updateStatsUI();
+    saveState();
+  }
+}, 100);
+
+setInterval(() => {
+  state.stats.timePlayed++;
+  updateStatsUI();
+  saveState();
+}, 1000);
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    document.getElementById("panel-upgrades").style.display = (tab === "upgrades") ? "" : "none";
+    document.getElementById("panel-stats").style.display    = (tab === "stats") ? "" : "none";
+    document.getElementById("panel-settings").style.display = (tab === "settings") ? "" : "none";
+  });
+});
+
+btnPrestige.addEventListener("click", () => {
+  const potentialTotal = Math.floor(state.totalCookies / PRESTIGE_COOKIES_PER_POINT);
+  const gain = Math.max(0, potentialTotal - state.prestigePoints);
+  if (gain <= 0) return;
+
+  if (!confirm(`Prestige yaparsan ${gain} yeni prestige puanı kazanacaksın ve tüm ilerlemen (prestige hariç) sıfırlanacak. Devam?`)) return;
+
+  state.prestigePoints += gain;
+
+  const keepPrestige = state.prestigePoints;
+  state = structuredClone(defaultState);
+  state.prestigePoints = keepPrestige;
+
+  recalcCps();
+  updateStatsUI();
+  saveState();
+});
+
+btnHardReset.addEventListener("click", () => {
+  if (!confirm("Gerçekten tüm kaydı silmek istiyor musun? Geri dönüşü yok.")) return;
+  localStorage.removeItem("cookieForgeSave");
+  state = structuredClone(defaultState);
+  recalcCps();
+  updateStatsUI();
+});
+
+function initFromState() {
+  recalcCps();
+  initUpgradesUI();
+  updateStatsUI();
+}
+
+initFromState();
+</script>
+</body>
+</html>
